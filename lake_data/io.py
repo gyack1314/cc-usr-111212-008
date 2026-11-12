@@ -2,6 +2,14 @@
 import hashlib,json
 from pathlib import Path
 
+def canonical(obj):
+    """规范化JSON文本：键排序、去空白，null按契约保留，NaN/Inf一律拒绝。"""
+    return json.dumps(obj,ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False)
+
+def digest(obj):
+    """对任意JSON兼容对象取规范化SHA-256摘要，输入摘要与行血缘绑定用它。"""
+    return hashlib.sha256(canonical(obj).encode('utf8')).hexdigest()
+
 def load(path):
     raw=Path(path).read_bytes()
     v=json.loads(raw.decode('utf8'),parse_constant=lambda x:(_ for _ in ()).throw(ValueError('不接受非有限常量')))

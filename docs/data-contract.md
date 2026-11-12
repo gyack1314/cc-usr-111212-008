@@ -5,3 +5,17 @@
 group-sum全null组sum为null，但若已无任何父贡献则该组消失；未撤除的组行重建后ID可不变而版本摘要变化。每条父边的贡献可由父行values复算，资料中缺父不当空贡献。实际递归闭包用row_id，数据值相同不构成血缘。
 
 提交时递增withdraw_epoch作为返回屏障。读操作开始与最终返回都检查epoch，若变化按当前请求主体过滤重新规划或失败重试，不能返回旧缓冲。副本status=deleted需receipt含copy_id、所删版本摘要和确认时刻，exception需人工登记的理由和范围；pending阻止本次范围完成。清除账将逻辑重建、读屏障、历史副本清理分别报告，不连接实际删除接口。
+
+# 撤回规划与重建口径
+
+规划入口是(request_id, subjects冻结集合)，命中任一raw行的主体集合即撤除整行，不拆出同行其他主体部分。影响沿parents来源边向下游传播形成完整row_id闭包；闭包内衍生行不一律删除，按转换语义重算：filter在唯一父行不满足where常量时消失；project按columns取仍存活父行的值；union按输入槽（父行）逐槽保留袋重数；group-sum排除被撤除父贡献后对仍有效父行的定标整数重算，全null组sum为null，已无任何父贡献的空组消失，组行ID不变而版本摘要变化。重建后行的parents只指向仍有效父行，任何悬空边都是阻塞项。
+
+计划绑定binding：release、每个transform的{kind,version}、全部行的完整血缘（row_id、kind、parents、transform、行摘要）与规范化input_digest。规划前结构性校验产出阻塞清单而非部分执行，代码包括missing-parent（血缘缺口，缺父不当空贡献）、lineage-cycle、unknown-transform、unsupported-transform、parent-cardinality、duplicate-group-key、value-not-integer、copy-unknown-row、receipt-invalid、exception-invalid等；任一存在即WithdrawBlocked，不允许只删可见几层后报完成。
+
+提交产生新release（命名为旧release加-wd后缀），当前行视图与来源边在一次赋值内原子切换，withdraw_epoch加一，并在tombstone_row_ids登记本次撤除的历史行ID。历史副本可继续登记墓碑行以便清除账追踪；引用从未登记过的行仍阻塞。旧文件不覆写，CLI输出路径已存在即拒绝。
+
+读句柄Reader绑定打开时刻的epoch与release快照：read_rows开始前先校验撤回屏障，缓冲组装后、返回前再校验一次，途中epoch变化即抛BarrierStale失败重试，绝不返回含已撤回主体的旧缓冲；另对缓冲raw行做主体双保险校验。
+
+同一request_id的重复请求：若当前状态摘要等于上次提交后的post_state_digest（重放）则复用已完成结果且不再推进epoch；新release又改变输入导致状态摘要不符时，以stale-plan阻塞，禁止应用过期行号，必须重新规划。提交前同样比对计划绑定摘要与当前输入。
+
+清除账clearance分三段：logical_rebuild只声明逻辑视图的撤除与重算并明示不代表物理字节消失；read_barrier报告提交前后epoch与重验规则；historical_copies逐副本给in_scope/tainted_rows与settlement（unaffected、blocking、verified、exception-registered），deleted回执核验copy_id、64位版本摘要与确认时刻，exception核验人工登记的理由与范围，pending或坏回执使scope_complete=false。登记范围之外的未知副本不承诺清除，本功能不做匿名化推断。
