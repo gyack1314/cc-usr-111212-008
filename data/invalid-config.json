@@ -1,0 +1,154 @@
+{
+  "release": "er0",
+  "rows": [
+    {
+      "row_id": "a",
+      "kind": "raw",
+      "subjects": [
+        "person1"
+      ],
+      "values": {
+        "team": "north",
+        "amount": 10
+      },
+      "parents": []
+    },
+    {
+      "row_id": "b",
+      "kind": "raw",
+      "subjects": [
+        "person2"
+      ],
+      "values": {
+        "team": "north",
+        "amount": 20
+      },
+      "parents": []
+    },
+    {
+      "row_id": "c",
+      "kind": "raw",
+      "subjects": [
+        "person1",
+        "person3"
+      ],
+      "values": {
+        "team": "south",
+        "amount": 5
+      },
+      "parents": []
+    },
+    {
+      "row_id": "pa",
+      "kind": "derived",
+      "transform": "p",
+      "parents": [
+        "a"
+      ],
+      "values": {
+        "team": "north",
+        "amount": 10
+      }
+    },
+    {
+      "row_id": "pb",
+      "kind": "derived",
+      "transform": "p",
+      "parents": [
+        "b"
+      ],
+      "values": {
+        "team": "north",
+        "amount": 20
+      }
+    },
+    {
+      "row_id": "pc",
+      "kind": "derived",
+      "transform": "p",
+      "parents": [
+        "c"
+      ],
+      "values": {
+        "team": "south",
+        "amount": 5
+      }
+    },
+    {
+      "row_id": "gn",
+      "kind": "derived",
+      "transform": "g",
+      "parents": [
+        "pa",
+        "pb"
+      ],
+      "values": {
+        "team": "north",
+        "amount": 30
+      }
+    },
+    {
+      "row_id": "gs",
+      "kind": "derived",
+      "transform": "g",
+      "parents": [
+        "pc"
+      ],
+      "values": {
+        "team": "south",
+        "amount": 5
+      }
+    }
+  ],
+  "transforms": [
+    {
+      "id": "p",
+      "kind": "unknown",
+      "columns": [
+        "team",
+        "amount"
+      ],
+      "version": "p1"
+    },
+    {
+      "id": "g",
+      "kind": "group-sum",
+      "group": [
+        "team"
+      ],
+      "value": "amount",
+      "version": "g1"
+    }
+  ],
+  "copies": [
+    {
+      "copy_id": "old-file",
+      "rows": [
+        "a",
+        "b",
+        "c"
+      ],
+      "status": "pending"
+    },
+    {
+      "copy_id": "export-1",
+      "rows": [
+        "gn",
+        "gs"
+      ],
+      "status": "pending"
+    }
+  ],
+  "request": {
+    "request_id": "withdraw1",
+    "subjects": [
+      "person1"
+    ]
+  },
+  "readers": [
+    {
+      "id": "reader-before",
+      "release": "er0"
+    }
+  ]
+}

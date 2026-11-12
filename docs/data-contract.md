@@ -1,0 +1,7 @@
+# 血缘与撤回范围
+
+行ID在仓库版本内唯一，raw行父集为空，derived引用完整父集及transform ID。变换project取columns，filter只支持等于常量的where={column,value}，union按父行保留袋重数，group-sum按group列、value整数/null聚合。原始每行唯一身份，所以同值不去重；project/filter输出ID由转换版本和单一父ID决定，union还含输入槽次，group行ID由转换版本和规范分组键决定。
+
+group-sum全null组sum为null，但若已无任何父贡献则该组消失；未撤除的组行重建后ID可不变而版本摘要变化。每条父边的贡献可由父行values复算，资料中缺父不当空贡献。实际递归闭包用row_id，数据值相同不构成血缘。
+
+提交时递增withdraw_epoch作为返回屏障。读操作开始与最终返回都检查epoch，若变化按当前请求主体过滤重新规划或失败重试，不能返回旧缓冲。副本status=deleted需receipt含copy_id、所删版本摘要和确认时刻，exception需人工登记的理由和范围；pending阻止本次范围完成。清除账将逻辑重建、读屏障、历史副本清理分别报告，不连接实际删除接口。
